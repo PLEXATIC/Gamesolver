@@ -1,0 +1,22 @@
+<form method="POST" action="/readMatrix">
+    <input type="hidden" value="{{width}}" name="width"\>
+    <input type="hidden" value="{{height}}" name="height"\>
+    <table style="border:1">
+    {% for i in range(height): %}
+    <tr>
+    {% for j in range(width): %}
+    <td>
+
+    <div style="display:inline-block; border: 1px solid black; margin: 3px; padding: 3px">
+        <input type="number" name="p1_{{j}}_{{i}}"\ style="float:left; width:50%">
+        <input type="number" name="p2_{{j}}_{{i}}"\ style="float:right;width:50%">
+    <div>
+
+    </td>
+    {% endfor %}
+    </tr>
+    {% endfor%}
+    </table>
+
+    <input type="submit"></input>
+</form>

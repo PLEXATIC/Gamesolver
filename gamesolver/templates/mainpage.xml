@@ -1,0 +1,7 @@
+<div id="maincontent">
+<form method="POST" target="/">
+<input type="text" hidden="true" name="data" value="{'attribA':1,'attribB':2}">
+<input type="submit" text="Abschicken" \>
+</form>
+
+<div>
