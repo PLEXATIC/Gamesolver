@@ -5,6 +5,27 @@ import numpy as np
 app = flask.Flask(__name__)
 app.secret_key = "secret43"
 
+def get_dominations(payoffs, player):
+    """
+    returns a list of tuples, each tuple contains the index of a dominated strategy and it's dominator
+    """
+    dominations = []
+    
+    if player == 1:
+        payoffs = payoffs.T
+    
+    for i1, strategy in enumerate(payoffs):
+
+        for i2, competing_strat in enumerate(payoffs):
+            if i1 == i2:
+                continue
+            if (strategy <= competing_strat).all() :
+                print(strategy, competing_strat)
+                dominations.append((i1, i2)) # i1 gets dominated by i2
+
+    return dominations
+
+
 @app.route("/readMatrix", methods=["POST"])
 def web_read_matrix():
     form = flask.request.form
@@ -35,7 +56,7 @@ def web_read_matrix():
             else:
                 p2strats[x][y] = val
 
-    #Determine shit here
+    #Determine shit here // best responses
     for stratindex in range(width):
         compare_vals = p1strats[stratindex]
         best_val = max(compare_vals)
@@ -45,11 +66,37 @@ def web_read_matrix():
 
     for stratindex in range(height):
         compare_vals = p2strats.T[stratindex]
-        print(compare_vals)
         best_val = max(compare_vals)
         for i in range(width):
             if p2strats[i][stratindex] == best_val:
                 p2rationals[i][stratindex] = 1
+
+    #IEDS
+    text_out = []
+    p1_ieds = p1strats.copy() #copy strategy arrays, so the originals don't change, when deleting strategies
+    p2_ieds = p2strats.copy()
+    p1_doms = get_dominations(p1_ieds, player=1)
+    p2_doms = get_dominations(p2_ieds, player=2)
+
+    while(p1_doms != [] or p2_doms != []):
+
+        for doms in p1_doms:
+            dominated, dominator = doms
+            text_out.append( f"P1: {dominated+1}. strategy gets dominated by the {dominator+1}. " )
+            p1_ieds = np.delete(p1_ieds, dominated, 1) #delete the dominated strategy in both arrays
+            p2_ieds = np.delete(p2_ieds, dominated, 1)
+
+        for doms in p2_doms:
+            dominated, dominator = doms
+            text_out.append( f"P2: {dominated+1}. strategy gets dominated by the {dominator+1}. " )
+            p1_ieds = np.delete(p1_ieds, dominated, 0) #delete the dominated strategy in both arrays
+            p2_ieds = np.delete(p2_ieds, dominated, 0) 
+            
+
+        text_out.append(f"---- eliminate dominated strategies! ----")
+        p1_doms = get_dominations(p1_ieds, player=1)
+        p2_doms = get_dominations(p2_ieds, player=2)
+
 
     flask.session.clear()
     flask.session["p1strats"] = p1strats.tolist()
@@ -58,6 +105,7 @@ def web_read_matrix():
     flask.session["p2rationals"] = p2rationals.tolist()
     flask.session["width"] = width
     flask.session["height"] = height
+    flask.session["ieds_text"] = text_out
     return flask.redirect("/showmatrix")
 
 @app.route("/showmatrix")
@@ -68,7 +116,8 @@ def web_show_matrix():
     p2rationals = flask.session["p2rationals"]
     width = int(flask.session["width"])
     height = int(flask.session["height"])
-    return flask.render_template("matrixview.xml", p1strats=p1strats, p2strats=p2strats, width=width, height=height, p1rationals=p1rationals, p2rationals=p2rationals)
+    ieds_text = flask.session["ieds_text"]
+    return flask.render_template("matrixview.xml", p1strats=p1strats, p2strats=p2strats, width=width, height=height, p1rationals=p1rationals, p2rationals=p2rationals, ieds_text=ieds_text)
 
 @app.route("/findstrictlydominated")
 def web_find_strictly_dominated():
@@ -105,3 +154,4 @@ def web_get_matrix(a_strats, b_strats):
     return flask.render_template("matrixform.xml", width=width, height=height)
 
 app.run(debug=True)
+

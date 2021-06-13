@@ -36,3 +36,8 @@
 </tr>
 {% endfor %}
 </table>
+{% for sentence in ieds_text %}
+<p>
+{{sentence}}
+</p>
+{% endfor %}
