@@ -94,35 +94,37 @@ def web_read_matrix():
 
     p1_doms = get_dominations(p1strats, p1_dominated, p2_dominated, player=1)
     p2_doms = get_dominations(p2strats, p2_dominated, p1_dominated, player=2)
+    strict_iteration = 0
+    
+    #text_out.append("==== Strictly Dominated Strategies of base game: ====")
 
-    text_out.append("==== Strictly Dominated Strategies of base game: ====")
-    for doms in p1_doms:
-        dominated, dominator = doms
-        text_out.append( f"P1: strategy {dominator+1} strictly dominates {dominated+1}" )
+    #for doms in p1_doms:
+    #    dominated, dominator = doms
+    #    text_out.append( f"P1: strategy {dominator+1} strictly dominates {dominated+1}" )
+    #for doms in p2_doms:
+    #    dominated, dominator = doms
+    #    text_out.append( f"P2: strategy {dominator+1} strictly dominates {dominated+1}" )
 
-    for doms in p2_doms:
-        dominated, dominator = doms
-        text_out.append( f"P2: strategy {dominator+1} strictly dominates {dominated+1}" )
-
-    text_out.append("==== Iterative elimination: ====")
+    #text_out.append("==== Iterative elimination: ====")
     while(p1_doms != [] or p2_doms != []):
 
         if p1_doms != []:
-            text_out.append(f"---- eliminating strategies of P1 strictly:")
+            text_out.append(f"---- eliminating strategies of P1 strictly: (Iteration {strict_iteration})")
         for doms in p1_doms:
             dominated, dominator = doms
             text_out.append( f"P1: Strategy {dominator+1} strictly dominates strategy {dominated+1}")
             p1_dominated.append(dominated)
 
-        p2_doms = get_dominations(p2strats, p2_dominated, p1_dominated, player=2)
 
         if p2_doms != []:
-            text_out.append(f"---- eliminating strategies of P2 strictly:")
+            text_out.append(f"---- eliminating strategies of P2 strictly: (Iteration {strict_iteration})")
         for doms in p2_doms:
             dominated, dominator = doms
             text_out.append( f"P2:{dominator+1} strictly dominates {dominated+1}" )
             p2_dominated.append(dominated)
         p1_doms = get_dominations(p1strats, p1_dominated, p2_dominated, player=1)
+        p2_doms = get_dominations(p2strats, p2_dominated, p1_dominated, player=2)
+        strict_iteration += 1
 
     #IEWDS
     text_out_w = []
@@ -132,34 +134,35 @@ def web_read_matrix():
     p1_doms_w = get_dominations(p1strats, p1_dominated_w, p2_dominated_w, player=1, strict=False)
     p2_doms_w = get_dominations(p2strats, p2_dominated_w, p1_dominated_w, player=2, strict=False)
 
-    text_out_w.append("==== Weakly Dominated Strategies of base game: ====")
-    for doms in p1_doms_w:
-        dominated, dominator = doms
-        text_out_w.append( f"P1: strategy {dominator+1} weakly dominates {dominated+1}" )
+    #text_out_w.append("==== Weakly Dominated Strategies of base game: ====")
+    #for doms in p1_doms_w:
+    #    dominated, dominator = doms
+    #    text_out_w.append( f"P1: strategy {dominator+1} weakly dominates {dominated+1}" )
 
-    for doms in p2_doms_w:
-        dominated, dominator = doms
-        text_out_w.append( f"P2: strategy {dominator+1} weakly dominates {dominated+1}" )
+    #for doms in p2_doms_w:
+    #    dominated, dominator = doms
+    #    text_out_w.append( f"P2: strategy {dominator+1} weakly dominates {dominated+1}" )
 
+    weak_iteration = 0
     while(p1_doms_w != [] or p2_doms_w != []):
-
         if p1_doms_w != []:
-            text_out_w.append(f"---- eliminating strategies of P1 weakly:")
+            text_out_w.append(f"---- eliminating strategies of P1 weakly (Iteration {weak_iteration})")
         for doms in p1_doms_w:
             dominated, dominator = doms
             text_out_w.append( f"P1: Strategy {dominator+1} weakly dominates strategy {dominated+1}")
             p1_dominated_w.append(dominated)
 
-
-        p2_doms_w = get_dominations(p2strats, p2_dominated_w, p1_dominated_w, player=2, strict=False)
-
         if p2_doms_w != []:
-            text_out_w.append(f"---- eliminating strategies of P2: weakly")
+            text_out_w.append(f"---- eliminating strategies of P2: weakly (Iteration {weak_iteration})")
         for doms in p2_doms_w:
             dominated, dominator = doms
             text_out_w.append( f"P2:{dominator+1} weakly dominates {dominated+1}" )
             p2_dominated_w.append(dominated)
+        
         p1_doms_w = get_dominations(p1strats, p1_dominated_w, p2_dominated_w, player=1, strict=False)
+        p2_doms_w = get_dominations(p2strats, p2_dominated_w, p1_dominated_w, player=2, strict=False)
+        weak_iteration += 1
+    
     flask.session.clear()
     flask.session["p1strats"] = p1strats.tolist()
     flask.session["p2strats"] = p2strats.tolist()
