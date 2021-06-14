@@ -37,7 +37,7 @@
 {% endfor %}
 </table>
 
-<div id="sentence_space" style="width:800px; padding: 12px;">
+<div id="sentence_space" style="width:810px; padding: 12px;">
 
 <div style="float:left;">
     {% for sentence in ieds_text %}
