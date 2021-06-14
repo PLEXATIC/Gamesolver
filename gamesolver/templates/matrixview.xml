@@ -36,8 +36,22 @@
 </tr>
 {% endfor %}
 </table>
-{% for sentence in ieds_text %}
-<p>
-{{sentence}}
-</p>
-{% endfor %}
+
+<div id="sentence_space" style="width:800px; padding: 12px;">
+
+<div style="float:left;">
+    {% for sentence in ieds_text %}
+    <p>
+    {{sentence}}
+    </p>
+    {% endfor %}
+
+</div>
+<div style="float:right">
+    {% for sentence in iewds_text %}
+    <p>
+    {{sentence}}
+    </p>
+    {% endfor %}
+</div>
+</div>
