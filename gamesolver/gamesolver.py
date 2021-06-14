@@ -5,7 +5,7 @@ import numpy as np
 app = flask.Flask(__name__)
 app.secret_key = "secret43"
 
-def get_dominations(payoffs, dom_strats, dom_strats_opponent, player):
+def get_dominations(payoffs, dom_strats, dom_strats_opponent, player, strict=True):
     """
     returns a list of tuples, each tuple contains the index of a dominated strategy and it's dominator
     """
@@ -17,7 +17,6 @@ def get_dominations(payoffs, dom_strats, dom_strats_opponent, player):
     for y, strategy in enumerate(payoffs):
         if y in dom_strats:
             continue
-        
         for y_, competing_strat in enumerate(payoffs):
             if y == y_ or y_ in dom_strats:
                 continue
@@ -27,8 +26,12 @@ def get_dominations(payoffs, dom_strats, dom_strats_opponent, player):
                 if x in dom_strats_opponent:
                     continue
                 
-                if payoffs[y, x] > payoffs[y_, x]:
-                    dom = False
+                if strict: #Hope this is right :0
+                    if payoffs[y, x] >= payoffs[y_, x]:
+                        dom = False
+                else:
+                    if payoffs[y, x] > payoffs[y_, x]:
+                        dom = False
 
             if sum(strategy) >= sum(competing_strat): #make shure that equal strategies don't dominate each other
                 dom = False
@@ -94,25 +97,51 @@ def web_read_matrix():
 
     while(p1_doms != [] or p2_doms != []):
 
+        if p1_doms != []:
+            text_out.append(f"---- eliminating strategies of P1 strictly:")
         for doms in p1_doms:
             dominated, dominator = doms
-            text_out.append( f"P1: {dominated+1}. strategy gets dominated by the {dominator+1}. " )
+            text_out.append( f"P1: Strategy {dominator+1} strictly dominates strategy {dominated+1}")
             p1_dominated.append(dominated)
 
-        if p1_doms != []:
-            text_out.append(f"---- eliminated strategies of P1----")
 
         p2_doms = get_dominations(p2strats, p2_dominated, p1_dominated, player=2)
 
+        if p2_doms != []:
+            text_out.append(f"---- eliminating strategies of P2 strictly:")
         for doms in p2_doms:
             dominated, dominator = doms
-            text_out.append( f"P2: {dominated+1}. strategy gets dominated by the {dominator+1}. " )
+            text_out.append( f"P2:{dominator+1} strictly dominates {dominated+1}" )
             p2_dominated.append(dominated)
-        if p2_doms != []:
-            text_out.append(f"---- eliminated strategies of P2----")
         p1_doms = get_dominations(p1strats, p1_dominated, p2_dominated, player=1)
-        
 
+    #IEWDS
+    text_out_w = []
+    p1_dominated_w = []
+    p2_dominated_w = []
+
+    p1_doms_w = get_dominations(p1strats, p1_dominated_w, p2_dominated_w, player=1, strict=False)
+    p2_doms_w = get_dominations(p2strats, p2_dominated_w, p1_dominated_w, player=2, strict=False)
+
+    while(p1_doms_w != [] or p2_doms_w != []):
+
+        if p1_doms_w != []:
+            text_out_w.append(f"---- eliminating strategies of P1 weakly:")
+        for doms in p1_doms_w:
+            dominated, dominator = doms
+            text_out_w.append( f"P1: Strategy {dominator+1} weakly dominates strategy {dominated+1}")
+            p1_dominated_w.append(dominated)
+
+
+        p2_doms_w = get_dominations(p2strats, p2_dominated_w, p1_dominated_w, player=2, strict=False)
+
+        if p2_doms_w != []:
+            text_out_w.append(f"---- eliminating strategies of P2: weakly")
+        for doms in p2_doms_w:
+            dominated, dominator = doms
+            text_out_w.append( f"P2:{dominator+1} weakly dominates {dominated+1}" )
+            p2_dominated_w.append(dominated)
+        p1_doms_w = get_dominations(p1strats, p1_dominated_w, p2_dominated_w, player=1, strict=False)
 
     flask.session.clear()
     flask.session["p1strats"] = p1strats.tolist()
@@ -122,6 +151,7 @@ def web_read_matrix():
     flask.session["width"] = width
     flask.session["height"] = height
     flask.session["ieds_text"] = text_out
+    flask.session["iewds_text"] = text_out_w
     return flask.redirect("/showmatrix")
 
 @app.route("/showmatrix")
@@ -133,35 +163,8 @@ def web_show_matrix():
     width = int(flask.session["width"])
     height = int(flask.session["height"])
     ieds_text = flask.session["ieds_text"]
-    return flask.render_template("matrixview.xml", p1strats=p1strats, p2strats=p2strats, width=width, height=height, p1rationals=p1rationals, p2rationals=p2rationals, ieds_text=ieds_text)
-
-@app.route("/findstrictlydominated")
-def web_find_strictly_dominated():
-    p1strats = flask.session["p1strats"]
-    p2strats = flask.session["p2strats"]
-    p1sd = np.zeros_like(p1strats)
-    p2sd = np.zeros_like(p2strats) 
-    width = flask.session["width"]
-    height = flask.session["height"]
-    #Find strictly dominated strats for p1
-    #Iterate over rows
-    print(p1strats)
-    
-    for y in range(height):
-        for y_ in range(height):
-            if y == y_:
-                continue
-            dom = True
-            for x in range(width):
-                if p1strats[x][y] >= p1strats[x][y_]:
-                    dom = False
-            if dom:
-                for x in range(width):
-                    p1sd[x][y] = 1
-
-
-    return str(p1sd)
-
+    iewds_text = flask.session["iewds_text"]
+    return flask.render_template("matrixview.xml", p1strats=p1strats, p2strats=p2strats, width=width, height=height, p1rationals=p1rationals, p2rationals=p2rationals, ieds_text=ieds_text, iewds_text=iewds_text)
 
 @app.route("/matrix/<a_strats>/<b_strats>")
 def web_get_matrix(a_strats, b_strats):
