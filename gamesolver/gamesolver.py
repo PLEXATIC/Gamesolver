@@ -45,10 +45,10 @@ def web_read_matrix():
 
     width = int(form["width"])
     height = int(form["height"])
-    p1strats = np.zeros((height, width))
-    p2strats = np.zeros((height, width))
-    p1rationals = np.zeros((height, width), dtype=int)
-    p2rationals = np.zeros((height, width), dtype=int)
+    p1strats = np.zeros((width, height))
+    p2strats = np.zeros((width, height))
+    p1rationals = np.zeros((width, height), dtype=int)
+    p2rationals = np.zeros((width, height), dtype=int)
     for key in form.keys():
         if key == "width" or key == "height":
             continue
