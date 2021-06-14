@@ -5,7 +5,7 @@ import numpy as np
 app = flask.Flask(__name__)
 app.secret_key = "secret43"
 
-def get_dominations(payoffs, player):
+def get_dominations(payoffs, dom_strats, dom_strats_opponent, player):
     """
     returns a list of tuples, each tuple contains the index of a dominated strategy and it's dominator
     """
@@ -13,15 +13,28 @@ def get_dominations(payoffs, player):
     
     if player == 1:
         payoffs = payoffs.T
-    
-    for i1, strategy in enumerate(payoffs):
 
-        for i2, competing_strat in enumerate(payoffs):
-            if i1 == i2:
+    for y, strategy in enumerate(payoffs):
+        if y in dom_strats:
+            continue
+        
+        for y_, competing_strat in enumerate(payoffs):
+            if y == y_ or y_ in dom_strats:
                 continue
-            if (strategy <= competing_strat).all() :
-                print(strategy, competing_strat)
-                dominations.append((i1, i2)) # i1 gets dominated by i2
+
+            dom = True
+            for x, _ in enumerate(payoffs[y_]):
+                if x in dom_strats_opponent:
+                    continue
+                
+                if payoffs[y, x] > payoffs[y_, x]:
+                    dom = False
+
+            if sum(strategy) >= sum(competing_strat): #make shure that equal strategies don't dominate each other
+                dom = False
+
+            if dom:            
+                dominations.append((y, y_)) # y gets dominated by y_
 
     return dominations
 
@@ -73,29 +86,32 @@ def web_read_matrix():
 
     #IEDS
     text_out = []
-    p1_ieds = p1strats.copy() #copy strategy arrays, so the originals don't change, when deleting strategies
-    p2_ieds = p2strats.copy()
-    p1_doms = get_dominations(p1_ieds, player=1)
-    p2_doms = get_dominations(p2_ieds, player=2)
+    p1_dominated = []
+    p2_dominated = []
+
+    p1_doms = get_dominations(p1strats, p1_dominated, p2_dominated, player=1)
+    p2_doms = get_dominations(p2strats, p2_dominated, p1_dominated, player=2)
 
     while(p1_doms != [] or p2_doms != []):
 
         for doms in p1_doms:
             dominated, dominator = doms
             text_out.append( f"P1: {dominated+1}. strategy gets dominated by the {dominator+1}. " )
-            p1_ieds = np.delete(p1_ieds, dominated, 1) #delete the dominated strategy in both arrays
-            p2_ieds = np.delete(p2_ieds, dominated, 1)
+            p1_dominated.append(dominated)
+
+        if p1_doms != []:
+            text_out.append(f"---- eliminated strategies of P1----")
+
+        p2_doms = get_dominations(p2strats, p2_dominated, p1_dominated, player=2)
 
         for doms in p2_doms:
             dominated, dominator = doms
             text_out.append( f"P2: {dominated+1}. strategy gets dominated by the {dominator+1}. " )
-            p1_ieds = np.delete(p1_ieds, dominated, 0) #delete the dominated strategy in both arrays
-            p2_ieds = np.delete(p2_ieds, dominated, 0) 
-            
-
-        text_out.append(f"---- eliminate dominated strategies! ----")
-        p1_doms = get_dominations(p1_ieds, player=1)
-        p2_doms = get_dominations(p2_ieds, player=2)
+            p2_dominated.append(dominated)
+        if p2_doms != []:
+            text_out.append(f"---- eliminated strategies of P2----")
+        p1_doms = get_dominations(p1strats, p1_dominated, p2_dominated, player=1)
+        
 
 
     flask.session.clear()
