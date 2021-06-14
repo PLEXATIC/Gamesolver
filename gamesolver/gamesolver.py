@@ -92,13 +92,22 @@ def web_read_matrix():
     p1_doms = get_dominations(p1strats, p1_dominated, p2_dominated, player=1)
     p2_doms = get_dominations(p2strats, p2_dominated, p1_dominated, player=2)
 
+    text_out.append("==== Dominated Strategies of base game: ====")
+    for doms in p1_doms:
+        dominated, dominator = doms
+        text_out.append( f"P1: {dominated+1}. strategy gets dominated by the {dominator+1}. " )
+
+    for doms in p2_doms:
+        dominated, dominator = doms
+        text_out.append( f"P2: {dominated+1}. strategy gets dominated by the {dominator+1}. " )
+
+    text_out.append("==== Iterative elimination: ====")
     while(p1_doms != [] or p2_doms != []):
 
         for doms in p1_doms:
             dominated, dominator = doms
             text_out.append( f"P1: {dominated+1}. strategy gets dominated by the {dominator+1}. " )
             p1_dominated.append(dominated)
-
         if p1_doms != []:
             text_out.append(f"---- eliminated strategies of P1----")
 
@@ -110,9 +119,9 @@ def web_read_matrix():
             p2_dominated.append(dominated)
         if p2_doms != []:
             text_out.append(f"---- eliminated strategies of P2----")
+
         p1_doms = get_dominations(p1strats, p1_dominated, p2_dominated, player=1)
         
-
 
     flask.session.clear()
     flask.session["p1strats"] = p1strats.tolist()
