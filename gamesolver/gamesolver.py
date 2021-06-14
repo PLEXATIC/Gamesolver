@@ -1,9 +1,64 @@
 import flask
 import json
 import numpy as np
+import sympy as sp
 
 app = flask.Flask(__name__)
 app.secret_key = "secret43"
+
+def get_mixed_strategy_equilibria(astrats, bstrats, dominations):
+    # Start for p1 is going to be ascii 97 which is a
+    # Start for p2 is going to be ascii 65 which is A
+    # Both leave room for 26 letters :) nobody is going to fill in a 26x26 matrix
+    #Step 1: Define variables:
+    
+    width = flask.session["width"]
+    height = flask.session["height"] 
+    p1_vars = []
+    for i in range(height-1):
+        random_symbol = chr(97+i)
+        p1_vars.append(sp.Symbol(random_symbol))
+
+    p2_vars = []
+    for i in range(width-1):
+        random_symbol = chr(65+i)
+        p2_vars.append(sp.Symbol(random_symbol))
+    
+    # Start generating the expressiones for strategies of player one
+    p1_utilities = []
+    for y in range(height):
+        terms = []
+        for x in range(width):
+            term = ""
+            if x < width-1:
+                term = f"{astrats[x][y]} * {p2_vars[x]}"
+            else:
+                term = f"{astrats[x][y]} * (1-({' + '.join([str(v) for v in p2_vars])}))"
+            terms.append(term)
+        p1_utilities.append(" + ".join(terms))
+
+    p2_utilities = []
+    for x in range(width):
+        terms = []
+        for y in range(height):
+            if dominations[x][y] > 0:
+                continue
+            term = ""
+            if y < height-1:
+                term = f"{bstrats[x][y]} * {p1_vars[y]}"
+            else:
+                term = f"{bstrats[x][y]} * (1-({' + '.join([str(v) for v in p1_vars])}))"
+            terms.append(term)
+        p2_utilities.append(" + ".join(terms))
+
+    p1_equation = " = ".join(p1_utilities)
+    p2_equation = " = ".join(p2_utilities)
+    print(p1_equation)
+    print(p2_equation)
+
+    #solution_1 = sp.solvers.solve(p1_equation, p2_vars)
+    #solution_2 = sp.solvers.solve(p2_equation, p1_vars)
+    #print(solution_1, solution_2)
 
 def get_dominations(payoffs, dom_strats, dom_strats_opponent, player, strict=True):
     """
@@ -144,6 +199,8 @@ def web_read_matrix():
     #    text_out_w.append( f"P2: strategy {dominator+1} weakly dominates {dominated+1}" )
 
     weak_iteration = 0
+
+
     while(p1_doms_w != [] or p2_doms_w != []):
         if p1_doms_w != []:
             text_out_w.append(f"---- eliminating strategies of P1 weakly (Iteration {weak_iteration})")
@@ -158,10 +215,23 @@ def web_read_matrix():
             dominated, dominator = doms
             text_out_w.append( f"P2:{dominator+1} weakly dominates {dominated+1}" )
             p2_dominated_w.append(dominated)
-        
+
         p1_doms_w = get_dominations(p1strats, p1_dominated_w, p2_dominated_w, player=1, strict=False)
         p2_doms_w = get_dominations(p2strats, p2_dominated_w, p1_dominated_w, player=2, strict=False)
         weak_iteration += 1
+
+    domination_matrix = np.zeros_like(p1strats)
+
+    # Dominations of p1 have consequences on x-axis
+    for y_dom in p1_dominated_w:
+        for x in range(width):
+            domination_matrix[x][y_dom] = 1
+
+    for x_dom in p2_dominated_w:
+        for y in range(height):
+            domination_matrix[x_dom][y] = 1
+
+    get_mixed_strategy_equilibria(p1strats, p2strats, domination_matrix)
     
     flask.session.clear()
     flask.session["p1strats"] = p1strats.tolist()
