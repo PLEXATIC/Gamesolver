@@ -57,7 +57,7 @@
 </div>
 <div id="Mixed Strategies" style="clear:both;">
 <hr/>
-<p>(Keep in mind that capital letters refer to believs of player 1, lowercase to player 2)</p>
+<p>(Lowercase letters refer to believs of Player 1, Uppercase to believs of Player2)</p>
 {% for strat in mixed_strats: %}
 
 <p>{{strat}}</p>

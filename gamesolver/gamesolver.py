@@ -2,7 +2,6 @@ import flask
 import json
 import numpy as np
 import sympy as sp
-
 app = flask.Flask(__name__)
 app.secret_key = "secret43"
 
@@ -78,19 +77,29 @@ def get_mixed_strategy_equilibria(astrats, bstrats, adoms, bdoms):
     #Let's try using all equations and all vars to solve
     p2_equations = []
     for i in range(len(p2_utilities)-1):
-        p1_equations.append(sp.Eq(p2_utilities[i], p2_utilities[i+1]))
+        p2_equations.append(sp.Eq(p2_utilities[i], p2_utilities[i+1]))
+
+    print(p1_equations)
+    print(p2_equations)
 
     #Now let's extend the arrays with the new values
-    p1_equations.extend(p2_equations)
-    p1_vars.extend(p2_vars)
-    solutions = sp.solve(p1_equations, p1_vars)
+    #p1_equations.extend(p2_equations)
+    #p1_vars.extend(p2_vars)
+    p1_solutions = sp.solve(p1_equations, p2_vars)
+    p2_solutions = sp.solve(p2_equations, p1_vars)
     solution_text = []
-    for variable in p1_vars:
-        value = "1 (or unknown)"
-        if variable in solutions:
-            value = solutions[variable]
+    solution_text.append("### Believs of Player1:")
+    for variable in  p1_vars:
+        value = "0 (unknown)"
+        if variable in p2_solutions:
+            value = p2_solutions[variable]
         solution_text.append(f"{variable} = {value}")
-
+    solution_text.append("### Believs of Player2:")
+    for variable in p2_vars:
+        value = "0 (unknown)"
+        if variable in p1_solutions:
+            value = p1_solutions[variable]
+        solution_text.append(f"{variable} = {value}")
     flask.session["mixed_strategies"] = solution_text
 
     
@@ -233,8 +242,6 @@ def web_read_matrix():
     #    text_out_w.append( f"P2: strategy {dominator+1} weakly dominates {dominated+1}" )
 
     weak_iteration = 0
-
-
     while(p1_doms_w != [] or p2_doms_w != []):
         if p1_doms_w != []:
             text_out_w.append(f"---- eliminating strategies of P1 weakly (Iteration {weak_iteration})")
@@ -253,17 +260,6 @@ def web_read_matrix():
         p1_doms_w = get_dominations(p1strats, p1_dominated_w, p2_dominated_w, player=1, strict=False)
         p2_doms_w = get_dominations(p2strats, p2_dominated_w, p1_dominated_w, player=2, strict=False)
         weak_iteration += 1
-
-    domination_matrix = np.zeros_like(p1strats)
-
-    # Dominations of p1 have consequences on x-axis
-    for y_dom in p1_dominated_w:
-        for x in range(width):
-            domination_matrix[x][y_dom] = 1
-
-    for x_dom in p2_dominated_w:
-        for y in range(height):
-            domination_matrix[x_dom][y] = 1
 
     get_mixed_strategy_equilibria(p1strats, p2strats, p1_dominated_w, p2_dominated_w)
     
