@@ -131,7 +131,7 @@ def get_dominations(payoffs, dom_strats, dom_strats_opponent, player, strict=Tru
                     if payoffs[y, x] > payoffs[y_, x]:
                         dom = False
 
-            if sum(strategy) >= sum(competing_strat): #make shure that equal strategies don't dominate each other
+            if sum(strategy) == sum(competing_strat): #make shure that equal strategies don't dominate each other
                 dom = False
 
             if dom:            
@@ -232,15 +232,6 @@ def web_read_matrix():
     p1_doms_w = get_dominations(p1strats, p1_dominated_w, p2_dominated_w, player=1, strict=False)
     p2_doms_w = get_dominations(p2strats, p2_dominated_w, p1_dominated_w, player=2, strict=False)
 
-    #text_out_w.append("==== Weakly Dominated Strategies of base game: ====")
-    #for doms in p1_doms_w:
-    #    dominated, dominator = doms
-    #    text_out_w.append( f"P1: strategy {dominator+1} weakly dominates {dominated+1}" )
-
-    #for doms in p2_doms_w:
-    #    dominated, dominator = doms
-    #    text_out_w.append( f"P2: strategy {dominator+1} weakly dominates {dominated+1}" )
-
     weak_iteration = 0
     while(p1_doms_w != [] or p2_doms_w != []):
         if p1_doms_w != []:
@@ -271,6 +262,8 @@ def web_read_matrix():
     
     flask.session["ieds_text"] = text_out
     flask.session["iewds_text"] = text_out_w
+    flask.session["p1_doms"] = p1_dominated_w
+    flask.session["p2_doms"] = p2_dominated_w
     return flask.redirect("/showmatrix")
 
 @app.route("/showmatrix")
@@ -284,7 +277,9 @@ def web_show_matrix():
     ieds_text = flask.session["ieds_text"]
     iewds_text = flask.session["iewds_text"]
     mixed_strats = flask.session["mixed_strategies"]
-    return flask.render_template("matrixview.xml", p1strats=p1strats, p2strats=p2strats, width=width, height=height, p1rationals=p1rationals, p2rationals=p2rationals, ieds_text=ieds_text, iewds_text=iewds_text, mixed_strats=mixed_strats)
+    p1doms = flask.session["p1_doms"]
+    p2doms = flask.session["p2_doms"]
+    return flask.render_template("matrixview.xml", p1strats=p1strats, p2strats=p2strats, width=width, height=height, p1rationals=p1rationals, p2rationals=p2rationals, ieds_text=ieds_text, iewds_text=iewds_text, mixed_strats=mixed_strats, p1doms=p1doms, p2doms=p2doms)
 
 @app.route("/matrix/<a_strats>/<b_strats>")
 def web_get_matrix(a_strats, b_strats):
