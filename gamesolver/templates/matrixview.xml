@@ -37,7 +37,7 @@
 {% endfor %}
 </table>
 
-<div id="sentence_space" style="width:810px; padding: 12px;">
+<div id="sentence_space" style="width:810px; padding: 12px; display:inline;">
 
 <div style="float:left;">
     {% for sentence in ieds_text %}
@@ -54,4 +54,14 @@
     </p>
     {% endfor %}
 </div>
+</div>
+<div id="Mixed Strategies" style="clear:both;">
+<hr/>
+<p>(Keep in mind that capital letters refer to believs of player 1, lowercase to player 2)</p>
+{% for strat in mixed_strats: %}
+
+<p>{{strat}}</p>
+
+{% endfor %}
+
 </div>

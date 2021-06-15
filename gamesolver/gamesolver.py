@@ -16,65 +16,84 @@ def get_mixed_strategy_equilibria(astrats, bstrats, adoms, bdoms):
     height = flask.session.get("height") 
     p1_vars = []
     for i in range(height-1):
+        if i in adoms:
+            continue
         random_symbol = chr(97+i)
         p1_vars.append(sp.Symbol(random_symbol))
 
     p2_vars = []
     for i in range(width-1):
+        if i in bdoms:
+            continue
         random_symbol = chr(65+i)
         p2_vars.append(sp.Symbol(random_symbol))
     
     # Start generating the expressiones for strategies of player one
     p1_utilities = []
     for y in range(height):
+        if y in adoms:
+            continue
         terms = []
+        x_index = 0
         for x in range(width):
+            if x in bdoms:
+                continue
             term = ""
             if x < width-1:
-                term = f"{astrats[x][y]} * {p2_vars[x]}"
+                term = f"{astrats[x][y]} * {p2_vars[x_index]}"
+                x_index += 1
             else:
-                term = f"{astrats[x][y]} * (1-({' + '.join([str(v) for v in p2_vars])}))"
+                if len(p2_vars) < 1:
+                    term = f"{astrats[x][y]}"
+                else:
+                    term = f"{astrats[x][y]} * (1-({' + '.join([str(v) for v in p2_vars])}))"
             terms.append(term)
         p1_utilities.append(sp.sympify(" + ".join(terms)))
 
     p2_utilities = []
     for x in range(width):
+        if x in bdoms:
+            continue
         terms = []
+        y_index = 0
         for y in range(height):
+            if y in adoms:
+                continue
             term = ""
             if y < height-1:
-                term = f"{bstrats[x][y]} * {p1_vars[y]}"
+                term = f"{bstrats[x][y]} * {p1_vars[y_index]}"
+                y_index += 1
             else:
-                term = f"{bstrats[x][y]} * (1-({' + '.join([str(v) for v in p1_vars])}))"
+                if len(p1_vars) < 1:
+                    term = f"{bstrats[x][y]}"
+                else:
+                    term = f"{bstrats[x][y]} * (1-({' + '.join([str(v) for v in p1_vars])}))"
             terms.append(term)
-        p2_utilities.append(" + ".join(terms))
+        p2_utilities.append(sp.sympify(" + ".join(terms)))
 
     p1_equations = []
     for i in range(len(p1_utilities)-1):
         p1_equations.append(sp.Eq(p1_utilities[i], p1_utilities[i+1]))
 
-    for dom in bdoms:
-        rhs = sp.sympify("0")
-        lhs = None
-        if dom < width-1:
-            lhs = p2_vars[dom]
-        else:
-            lhs = sp.sympify(f"1-({' + '.join([str(v) for v in p2_vars])})")
-        p1_equations.append(sp.Eq(lhs, rhs))
+    #Let's try using all equations and all vars to solve
+    p2_equations = []
+    for i in range(len(p2_utilities)-1):
+        p1_equations.append(sp.Eq(p2_utilities[i], p2_utilities[i+1]))
 
+    #Now let's extend the arrays with the new values
+    p1_equations.extend(p2_equations)
+    p1_vars.extend(p2_vars)
+    solutions = sp.solve(p1_equations, p1_vars)
+    solution_text = []
+    for variable in p1_vars:
+        value = "1 (or unknown)"
+        if variable in solutions:
+            value = solutions[variable]
+        solution_text.append(f"{variable} = {value}")
 
-    soutiones = sp.solve(p1_equations, p2_vars)
-    print(soutiones)
+    flask.session["mixed_strategies"] = solution_text
 
     
-    p2_equation = " = ".join(p2_utilities)
-    #print(p1_equation)
-    print(p2_equation)
-
-    #solution_1 = sp.solvers.solve(p1_equation, p2_vars)
-    #solution_2 = sp.solvers.solve(p2_equation, p1_vars)
-    #print(solution_1, solution_2)
-
 def get_dominations(payoffs, dom_strats, dom_strats_opponent, player, strict=True):
     """
     returns a list of tuples, each tuple contains the index of a dominated strategy and it's dominator
@@ -268,7 +287,8 @@ def web_show_matrix():
     height = int(flask.session["height"])
     ieds_text = flask.session["ieds_text"]
     iewds_text = flask.session["iewds_text"]
-    return flask.render_template("matrixview.xml", p1strats=p1strats, p2strats=p2strats, width=width, height=height, p1rationals=p1rationals, p2rationals=p2rationals, ieds_text=ieds_text, iewds_text=iewds_text)
+    mixed_strats = flask.session["mixed_strategies"]
+    return flask.render_template("matrixview.xml", p1strats=p1strats, p2strats=p2strats, width=width, height=height, p1rationals=p1rationals, p2rationals=p2rationals, ieds_text=ieds_text, iewds_text=iewds_text, mixed_strats=mixed_strats)
 
 @app.route("/matrix/<a_strats>/<b_strats>")
 def web_get_matrix(a_strats, b_strats):
