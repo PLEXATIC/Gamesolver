@@ -6,14 +6,14 @@ import sympy as sp
 app = flask.Flask(__name__)
 app.secret_key = "secret43"
 
-def get_mixed_strategy_equilibria(astrats, bstrats, dominations):
+def get_mixed_strategy_equilibria(astrats, bstrats, adoms, bdoms):
     # Start for p1 is going to be ascii 97 which is a
     # Start for p2 is going to be ascii 65 which is A
     # Both leave room for 26 letters :) nobody is going to fill in a 26x26 matrix
     #Step 1: Define variables:
     
-    width = flask.session["width"]
-    height = flask.session["height"] 
+    width = flask.session.get("width")
+    height = flask.session.get("height") 
     p1_vars = []
     for i in range(height-1):
         random_symbol = chr(97+i)
@@ -35,14 +35,12 @@ def get_mixed_strategy_equilibria(astrats, bstrats, dominations):
             else:
                 term = f"{astrats[x][y]} * (1-({' + '.join([str(v) for v in p2_vars])}))"
             terms.append(term)
-        p1_utilities.append(" + ".join(terms))
+        p1_utilities.append(sp.sympify(" + ".join(terms)))
 
     p2_utilities = []
     for x in range(width):
         terms = []
         for y in range(height):
-            if dominations[x][y] > 0:
-                continue
             term = ""
             if y < height-1:
                 term = f"{bstrats[x][y]} * {p1_vars[y]}"
@@ -51,9 +49,26 @@ def get_mixed_strategy_equilibria(astrats, bstrats, dominations):
             terms.append(term)
         p2_utilities.append(" + ".join(terms))
 
-    p1_equation = " = ".join(p1_utilities)
+    p1_equations = []
+    for i in range(len(p1_utilities)-1):
+        p1_equations.append(sp.Eq(p1_utilities[i], p1_utilities[i+1]))
+
+    for dom in bdoms:
+        rhs = sp.sympify("0")
+        lhs = None
+        if dom < width-1:
+            lhs = p2_vars[dom]
+        else:
+            lhs = sp.sympify(f"1-({' + '.join([str(v) for v in p2_vars])})")
+        p1_equations.append(sp.Eq(lhs, rhs))
+
+
+    soutiones = sp.solve(p1_equations, p2_vars)
+    print(soutiones)
+
+    
     p2_equation = " = ".join(p2_utilities)
-    print(p1_equation)
+    #print(p1_equation)
     print(p2_equation)
 
     #solution_1 = sp.solvers.solve(p1_equation, p2_vars)
@@ -231,15 +246,14 @@ def web_read_matrix():
         for y in range(height):
             domination_matrix[x_dom][y] = 1
 
-    get_mixed_strategy_equilibria(p1strats, p2strats, domination_matrix)
+    get_mixed_strategy_equilibria(p1strats, p2strats, p1_dominated_w, p2_dominated_w)
     
-    flask.session.clear()
+    #flask.session.clear()
     flask.session["p1strats"] = p1strats.tolist()
     flask.session["p2strats"] = p2strats.tolist()
     flask.session["p1rationals"] = p1rationals.tolist()
     flask.session["p2rationals"] = p2rationals.tolist()
-    flask.session["width"] = width
-    flask.session["height"] = height
+    
     flask.session["ieds_text"] = text_out
     flask.session["iewds_text"] = text_out_w
     return flask.redirect("/showmatrix")
@@ -259,6 +273,8 @@ def web_show_matrix():
 @app.route("/matrix/<a_strats>/<b_strats>")
 def web_get_matrix(a_strats, b_strats):
     height, width = int(a_strats), int(b_strats)
+    flask.session["width"] = width
+    flask.session["height"] = height
     print(f"Generating form for Matrix of width: {width} and height: {height}")
     return flask.render_template("matrixform.xml", width=width, height=height)
 
